@@ -3,42 +3,36 @@
 # ==========================================
 FROM node:14-alpine AS builder
 
-# Set working directory
 WORKDIR /app
 
-# Copy dependency files first
+# Copy package files
 COPY package*.json ./
 
-# Install exact dependencies
+# Install dependencies
 RUN npm ci
 
 # Copy application source
 COPY . .
 
-# Build React application
+# Create production build
 RUN npm run build
 
 
 # ==========================================
-# Stage 2: Production Nginx server
+# Stage 2: Run React application
 # ==========================================
-FROM nginx:alpine
+FROM node:14-alpine
 
-# Remove default Nginx files
-RUN rm -rf /usr/share/nginx/html/*
+WORKDIR /app
 
-# CRA creates the build directory
-COPY --from=builder /app/build /usr/share/nginx/html
+# Install lightweight static web server
+RUN npm install -g serve@14.2.4
 
-# Custom Nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Copy production build from builder
+COPY --from=builder /app/build ./build
 
-# HTTP
-EXPOSE 80
+# React application port
+EXPOSE 3000
 
-# Container health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-    CMD wget --no-verbose --tries=1 --spider http://127.0.0.1/ || exit 1
-
-# Run Nginx in foreground
-CMD ["nginx", "-g", "daemon off;"]
+# Start production server
+CMD ["serve", "-s", "build", "-l", "3000"]
