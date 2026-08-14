@@ -9,7 +9,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy application source
 COPY . .
@@ -19,20 +19,20 @@ RUN npm run build
 
 
 # ==========================================
-# Stage 2: Run React application
+# Stage 2: Production React server
 # ==========================================
 FROM node:14-alpine
 
 WORKDIR /app
 
-# Install lightweight static web server
+# Install static file server
 RUN npm install -g serve@14.2.4
 
-# Copy production build from builder
+# Copy production build
 COPY --from=builder /app/build ./build
 
 # React application port
 EXPOSE 3000
 
-# Start production server
-CMD ["serve", "-s", "build", "-l", "3000"]
+# Start React production server
+CMD ["serve", "-s", "build", "-l", "3000", "--single"]
